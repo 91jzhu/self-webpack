@@ -1,4 +1,5 @@
-const webpack = require('webpack')
+const webpack = require('./rsPack')
+// const webpack = require('webpack')
 const config = require('./webpack.config')
 
 const compiler = webpack(config)
