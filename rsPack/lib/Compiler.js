@@ -5,6 +5,8 @@ const {
   AsyncParallelHook,
   SyncBailHook,
 } = require("tapable");
+const Compilation = require("./Compilation");
+const NormalModuleFactory = require("./NormalModuleFactory");
 
 class Compiler extends Tapable {
   constructor(context) {
@@ -51,7 +53,28 @@ class Compiler extends Tapable {
       });
     });
   }
-  compile(callback) {}
+  compile(callback) {
+    const params = this.newCompilationParams();
+    this.hooks.beforeCompile.callAsync(params, (err) => {
+      this.hooks.compile.call(params);
+      const compilation = this.newCompilation();
+      this.hooks.make.callAsync(compilation, (err) => {
+        callback();
+        console.log("make执行完毕");
+      });
+    });
+  }
+  newCompilationParams() {
+    return {
+      normalModuleFactory: new NormalModuleFactory(),
+    };
+  }
+  newCompilation() {
+    return this.createCompilation();
+  }
+  createCompilation() {
+    return new Compilation(this);
+  }
 }
 
 module.exports = Compiler;
