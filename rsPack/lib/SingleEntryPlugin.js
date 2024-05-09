@@ -11,7 +11,7 @@ class SingleEntryPlugin {
         const { context, entry, name } = this;
         callback();
         console.log("make SingleEntryPlugin");
-        // compilation.addEntry()
+        compilation.addEntry(context, entry, name, callback);
       }
     );
   }
