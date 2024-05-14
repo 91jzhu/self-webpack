@@ -1,3 +1,5 @@
+const Parser = require("./Parser");
+
 class NormalModule {
   constructor(data) {
     this.name = data.name;
@@ -18,15 +20,13 @@ class NormalModule {
    */
   build(compilation, callback) {
     this.doBuild(compilation, (err) => {
-      // TODO
-      this._ast = this.parser(this._source);
+      this._ast = new Parser().parse(this._source);
       callback(err);
     });
   }
   doBuild(compilation, callback) {
     this.getResource(compilation, (err, file) => {
       this._source = file;
-      console.log("file====", file);
       callback();
     });
   }

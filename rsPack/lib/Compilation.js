@@ -1,5 +1,6 @@
 const { Tapable, SyncHook } = require("tapable");
 const path = require("path");
+const Parser = require("./Parser");
 const NormalModuleFactory = require("./NormalModuleFactory");
 
 class Compilation extends Tapable {
@@ -30,12 +31,12 @@ class Compilation extends Tapable {
     });
   }
   _addModuleChain(context, entry, name, callback) {
-    const entryModule = NormalModuleFactory.create({
+    const entryModule = new NormalModuleFactory().create({
       name,
       context,
       rawRequest: entry,
       resource: path.join(context, entry),
-      parser: () => {},
+      parser: Parser,
     });
 
     const afterBuild = (err) => {

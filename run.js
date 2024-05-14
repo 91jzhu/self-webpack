@@ -4,7 +4,7 @@ const config = require("./webpack.config");
 
 const compiler = webpack(config);
 
-compiler.run((err, status) => {
+compiler.run((err, stats) => {
   console.log(err);
-  console.log(status.toJson());
+  console.log(stats.toJson());
 });

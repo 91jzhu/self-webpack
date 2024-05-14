@@ -6,6 +6,7 @@ const {
   SyncBailHook,
 } = require("tapable");
 const Compilation = require("./Compilation");
+const Stats = require("./Stats");
 const NormalModuleFactory = require("./NormalModuleFactory");
 
 class Compiler extends Tapable {
@@ -26,25 +27,13 @@ class Compiler extends Tapable {
     };
   }
   run(callback) {
-    console.log("run execute~~~");
     const finalCallback = (err, stats) => {
-      console.log("finalCallback~~~");
       callback && callback(err, stats);
     };
 
     const onCompiled = (err, compilation) => {
-      console.log("onCompiled~~~");
       if (!err) {
-        finalCallback(null, {
-          toJson() {
-            return {
-              entries: [], // 入口信息
-              chunks: [], // chunk 信息
-              modules: [], // 模块信息
-              assets: [], // 最终生成的资源
-            };
-          },
-        });
+        finalCallback(null, new Stats(compilation));
       }
     };
     this.hooks.beforeRun.callAsync(this, (err) => {
@@ -57,10 +46,9 @@ class Compiler extends Tapable {
     const params = this.newCompilationParams();
     this.hooks.beforeCompile.callAsync(params, (err) => {
       this.hooks.compile.call(params);
-      const compilation = this.newCompilation();
+      const compilation = this.newCompilation(params);
       this.hooks.make.callAsync(compilation, (err) => {
-        callback();
-        console.log("make执行完毕");
+        callback(err, compilation);
       });
     });
   }
@@ -69,8 +57,11 @@ class Compiler extends Tapable {
       normalModuleFactory: new NormalModuleFactory(),
     };
   }
-  newCompilation() {
-    return this.createCompilation();
+  newCompilation(params) {
+    const compilation = this.createCompilation();
+    this.hooks.thisCompilation.call(compilation, params);
+    this.hooks.compilation.call(compilation, params);
+    return compilation;
   }
   createCompilation() {
     return new Compilation(this);
