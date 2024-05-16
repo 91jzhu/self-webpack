@@ -30,22 +30,53 @@ class Compilation extends Tapable {
       callback(err, module);
     });
   }
-  _addModuleChain(context, entry, name, callback) {
-    const entryModule = new NormalModuleFactory().create({
-      name,
-      context,
-      rawRequest: entry,
-      resource: path.join(context, entry),
-      parser: Parser,
-    });
+  /**
+   * 定义创建模块方法，达到复用目的
+   * @param {*} data 定义模块时需要的属性值
+   * @param {*} addEntry 若有，即为入口模块，可以加入 entries
+   * @param {*} callback
+   */
+  createModule(data, addEntry, callback) {
+    const module = new NormalModuleFactory().create(data);
 
-    const afterBuild = (err) => {
-      callback(err, entryModule);
+    const afterBuild = (err, module) => {
+      if (module.dependcies.length) {
+        // 依赖了其他模块
+        this.processDependencies(module, (err) => {
+          callback(err, module);
+        });
+      } else {
+        callback(err, module);
+      }
     };
-    this.buildModule(entryModule, afterBuild);
+    this.buildModule(module, afterBuild);
 
-    this.entries.push(entryModule);
-    this.modules.push(entryModule);
+    addEntry && addEntry(module);
+    this.modules.push(module);
+  }
+  /**
+   * 调用 createModule，完成模块的加载
+   * @param {*} context
+   * @param {*} entry
+   * @param {*} name
+   * @param {*} callback
+   */
+  _addModuleChain(context, entry, name, callback) {
+    this.createModule(
+      {
+        name,
+        context,
+        parser: Parser,
+        resource: path.join(context, entry),
+        rawRequest: path.join(context, entry),
+        moduleId:
+          "." + path.sep + path.relative(context, path.join(context, entry)),
+      },
+      (entryModule) => {
+        this.entries.push(entryModule);
+      },
+      callback
+    );
   }
   /**
    * 具体的 build 行为
@@ -55,9 +86,11 @@ class Compilation extends Tapable {
   buildModule(module, callback) {
     module.build(this, (err) => {
       this.hooks.succeedModule.call(module);
-      callback();
+      callback(err, module);
     });
   }
+  // 递归加载模块，必须所有模块都加载完毕再执行回调，neo-async
+  processDependencies(module, callback) {}
 }
 
 module.exports = Compilation;
