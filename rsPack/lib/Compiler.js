@@ -48,7 +48,12 @@ class Compiler extends Tapable {
       this.hooks.compile.call(params);
       const compilation = this.newCompilation(params);
       this.hooks.make.callAsync(compilation, (err) => {
-        callback(err, compilation);
+        // 开始处理 chunk
+        compilation.seal((err) => {
+          this.hooks.afterCompile.callAsync(compilation, (err) => {
+            callback(err, compilation);
+          });
+        });
       });
     });
   }

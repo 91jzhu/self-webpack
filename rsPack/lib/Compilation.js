@@ -1,7 +1,9 @@
 const { Tapable, SyncHook } = require("tapable");
+const async = require("neo-async");
 const path = require("path");
 const Parser = require("./Parser");
 const NormalModuleFactory = require("./NormalModuleFactory");
+const Chunk = require("./Chunk");
 
 class Compilation extends Tapable {
   constructor(compiler) {
@@ -16,7 +18,11 @@ class Compilation extends Tapable {
     this.modules = []; //  存放所有模块信息
     this.hooks = {
       succeedModule: new SyncHook(["module"]),
+      seal: new SyncHook(),
+      beforeChunks: new SyncHook(),
+      afterChunks: new SyncHook(),
     };
+    this.chunks = []; // 存放当前打包过程中产生的 chunk
   }
   /**
    * 完成模块编译操作
@@ -90,7 +96,44 @@ class Compilation extends Tapable {
     });
   }
   // 递归加载模块，必须所有模块都加载完毕再执行回调，neo-async
-  processDependencies(module, callback) {}
+  processDependencies(module, callback) {
+    const deps = module.dependcies;
+    async.forEach(
+      deps,
+      (dep, done) => {
+        this.createModule(
+          {
+            name: dep.name,
+            context: dep.context,
+            rawRequest: dep.rawRequest,
+            moduleId: dep.moduleId,
+            resource: dep.resource,
+            parser: Parser,
+          },
+          null,
+          done
+        );
+      },
+      callback
+    );
+  }
+  seal(callback) {
+    this.hooks.seal.call();
+    this.hooks.afterChunks.call();
+    // 入口模块信息在 compliation 的 entries
+    // 生成 chunk 大概步骤：依据入口文件，找到其所有依赖，合并代码，输出
+    for (const entryModule of this.entries) {
+      // 创建模块，加载，记录信息
+      const chunkModule = new Chunk(entryModule);
+      // 保存 chunk 信息
+      this.chunks.push(chunkModule);
+      // 根据 name，相同的为同一 chunk
+      chunkModule.modules = this.modules.filter(
+        (v) => v.name === chunkModule.name
+      );
+    }
+    callback();
+  }
 }
 
 module.exports = Compilation;

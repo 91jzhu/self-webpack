@@ -6,5 +6,5 @@ const compiler = webpack(config);
 
 compiler.run((err, stats) => {
   // console.log(err);
-  // console.log(stats.toJson());
+  console.log(stats.toJson());
 });
