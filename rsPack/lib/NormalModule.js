@@ -9,6 +9,7 @@ const path = require("path");
 
 class NormalModule {
   constructor(data) {
+    this.moduleId = data.moduleId;
     this.context = data.context;
     this.name = data.name;
     this.rawRequest = data.rawRequest;

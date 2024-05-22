@@ -4,6 +4,7 @@ const path = require("path");
 const Parser = require("./Parser");
 const NormalModuleFactory = require("./NormalModuleFactory");
 const Chunk = require("./Chunk");
+const ejs = require("ejs");
 
 class Compilation extends Tapable {
   constructor(compiler) {
@@ -23,6 +24,8 @@ class Compilation extends Tapable {
       afterChunks: new SyncHook(),
     };
     this.chunks = []; // 存放当前打包过程中产生的 chunk
+    this.assets = [];
+    this.files = [];
   }
   /**
    * 完成模块编译操作
@@ -132,7 +135,39 @@ class Compilation extends Tapable {
         (v) => v.name === chunkModule.name
       );
     }
+    // chunk 流程梳理后，开始代码处理，模板文件 + 源码 = chunk.js
+    this.hooks.afterChunks.call(this.chunks);
+    // 生成代码内容
+    this.createChunkAssets();
     callback();
+  }
+  createChunkAssets() {
+    const len = this.chunks.length;
+    let fileName, source;
+    for (let i = 0; i < len; i++) {
+      const chunk = this.chunks[i];
+      fileName = chunk.name + ".js";
+      chunk.files.push(fileName);
+      // 读取模板及内容
+      const templatePath = path.join(__dirname, "template/main.ejs");
+      const templateCode = this.inputFileSystem.readFileSync(
+        templatePath,
+        "utf8"
+      );
+      const templateRender = ejs.compile(templateCode);
+
+      source = templateRender({
+        entryModuleId: chunk.entryModule.moduleId,
+        modules: chunk.modules,
+      });
+      // 输出文件
+      console.log("source==", source);
+      this.emitAssets(fileName, source);
+    }
+  }
+  emitAssets(fileName, source) {
+    this.assets[fileName] = source;
+    this.files.push(fileName);
   }
 }
 
