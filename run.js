@@ -1,4 +1,4 @@
-const webpack = require("./rsPack");
+const webpack = require("./myPack");
 // const webpack = require("webpack");
 const config = require("./webpack.config");
 

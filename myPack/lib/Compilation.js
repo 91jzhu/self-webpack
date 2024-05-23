@@ -161,7 +161,6 @@ class Compilation extends Tapable {
         modules: chunk.modules,
       });
       // 输出文件
-      console.log("source==", source);
       this.emitAssets(fileName, source);
     }
   }
